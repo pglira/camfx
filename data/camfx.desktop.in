@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=CamFX
+GenericName=Webcam effects
+Comment=Webcam effects as a virtual camera
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/camfx --show
+Icon=camfx
+Terminal=false
+Categories=AudioVideo;Video;
+Keywords=webcam;camera;virtual;background;blur;
+StartupNotify=false
