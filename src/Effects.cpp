@@ -361,29 +361,36 @@ void Effects::finalPass(cv::Mat& f, const Params& p, bool composite)
     if (!composite && !curves && !lut)
         return;
 
+    // A blurred background comes from the camera frame and gets the same tone curves and
+    // color LUT as the person. A replacement image or color stays as it is: the
+    // composite comes after the color pass.
+    const bool gradeBackground = p.backgroundMode == BackgroundMode::Blur;
+
     // One pass over the frame: background composite, tone curves, color LUT
     cv::parallel_for_(cv::Range(0, f.rows), [&](const cv::Range& rows) {
         for (int y = rows.start; y < rows.end; ++y) {
             uchar* row = f.ptr<uchar>(y);
-            if (composite)
+            if (composite && gradeBackground)
                 compositeRow(row, bg_.ptr<uchar>(y), personFull_.ptr<uchar>(y), f.cols);
-            if (!curves && !lut)
-                continue;
-            uchar* px = row;
-            for (int x = 0; x < f.cols; ++x, px += 3) {
-                if (curves) {
-                    px[0] = curves_[0][px[0]];
-                    px[1] = curves_[1][px[1]];
-                    px[2] = curves_[2][px[2]];
-                }
-                if (lut) {
-                    float out[3];
-                    lut->mapPixel(px, out);
-                    px[0] = uchar(out[0] + 0.5f);
-                    px[1] = uchar(out[1] + 0.5f);
-                    px[2] = uchar(out[2] + 0.5f);
+            if (curves || lut) {
+                uchar* px = row;
+                for (int x = 0; x < f.cols; ++x, px += 3) {
+                    if (curves) {
+                        px[0] = curves_[0][px[0]];
+                        px[1] = curves_[1][px[1]];
+                        px[2] = curves_[2][px[2]];
+                    }
+                    if (lut) {
+                        float out[3];
+                        lut->mapPixel(px, out);
+                        px[0] = uchar(out[0] + 0.5f);
+                        px[1] = uchar(out[1] + 0.5f);
+                        px[2] = uchar(out[2] + 0.5f);
+                    }
                 }
             }
+            if (composite && !gradeBackground)
+                compositeRow(row, bg_.ptr<uchar>(y), personFull_.ptr<uchar>(y), f.cols);
         }
     });
 }
